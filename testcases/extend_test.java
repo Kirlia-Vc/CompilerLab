@@ -6,7 +6,11 @@ class Factorial{
     }
 }
 class Fact extends Fac{
-
+    public int TSG(){
+        int T;
+        T=new Main34();
+        return T;
+    }
 }
 class Fac {
     Fact t;
@@ -15,7 +19,7 @@ class Fac {
         if (num < (6))
             num_aux = 1 ;
         else
-            num_aux = num * (new Fac().ComputeFact(num-1)) ;
+            num_aux = num * (this.ComputeFadtct(num-1)) ;
         return this ;
     }
 }

@@ -445,13 +445,11 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         MySymbol _ret=null;
         MySymbol object=n.f0.accept(this, argu);
         if(!(object instanceof MyVar)){
-            MyOutput.error("object is not a class instance.");
-            return null;
+            throw new MyException("object is not a class instance.");
         }
         MySymbol objType=((MyVar) object).varType;
         if(!(objType instanceof MyClass)){
-            MyOutput.error("object is not a class instance.");
-            return null;
+            throw new MyException("object is not a class instance.");
         }
         MyClass objClass=(MyClass)objType;
         objClass.expectingMethod=true;
@@ -493,8 +491,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         MySymbol _ret=null;
 
         if(!(argu instanceof MyArgs)){
-            MyOutput.error("Unknown Error.");
-            return null;
+            throw new MyException("Unknown Error.");
         }
         MyVar var=(MyVar)n.f0.accept(this, argu);
         ((MyArgs)argu).addSymbol(var.varType);
