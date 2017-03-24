@@ -5,21 +5,24 @@ class Factorial{
         System.out.println(new Fact().ComputeFact(m.ComputeFact(2)));
     }
 }
-class Fact extends Fac{
+class Fac extends Fac{
     public int TSG(){
         int T;
-        T=new Main34();
+        T=7;
         return T;
     }
 }
-class Fac {
+class Fact {
     Fact t;
     public int ComputeFact(int num){
         int num_aux ;
         if (num < (6))
             num_aux = 1 ;
         else
-            num_aux = num * (this.ComputeFadtct(num-1)) ;
-        return this ;
+            num_aux = num * (this.ComputeFact(num-1)) ;
+        return num_aux ;
+    }
+    public Fac GetA(int t){
+        return new Fact();
     }
 }

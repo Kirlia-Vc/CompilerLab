@@ -139,9 +139,15 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         n.f8.accept(this, argu);
         n.f9.accept(this, argu);
         MySymbol retVal=n.f10.accept(this, argu);
-        if(!((MyVar)retVal).varType.equals(returnType))
-            throw new MyException(n.f2.getPos()+"return type is not equal with the defination, expected "
-            +returnType.name+", get "+((MyVar)retVal).varType.name);
+        MySymbol retValType=((MyVar)retVal).varType;
+        while(!retValType.equals(returnType)){
+            if(retValType.upper==null)
+                throw new MyException(n.f2.getPos()+"return type is not equal with the defination, expected "
+                        +returnType.name+", get "+((MyVar)retVal).varType.name);
+            else
+                retValType=retValType.upper;
+        }
+
         n.f11.accept(this, argu);
         n.f12.accept(this, argu);
         return _ret;
