@@ -1,6 +1,6 @@
 package visitor;
 
-import minijava.MyOutput;
+import minijava.MyException;
 import mytypes.MyClass;
 import mytypes.MyGoal;
 import mytypes.MySymbol;
@@ -72,8 +72,7 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 	      MyGoal myGoal=(MyGoal)argu;
 	      String name=n.f1.getName();
 		  if(myGoal.classMap.get(name)!=null){
-			  MyOutput.error("class "+name+" is already declared");
-			  return _ret;
+			  throw new MyException(n.f1.getName()+"class "+name+" is already declared");
 		  }
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  myGoal.classMap.put(name, tempClass);
@@ -100,8 +99,7 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 	      String name=n.f1.getName();
 	      MyGoal myGoal=(MyGoal)argu;
 		  if(myGoal.classMap.get(name)!=null){
-			  MyOutput.error("class "+name+" is already declared");
-			  return _ret;
+			  throw new MyException(n.f1.getPos()+"class "+name+" is already declared");
 		  }
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  myGoal.classMap.put(name, tempClass);

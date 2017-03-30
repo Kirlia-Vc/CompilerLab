@@ -1,5 +1,6 @@
 package visitor;
 
+import minijava.MyException;
 import minijava.MyOutput;
 import mytypes.*;
 import syntaxtree.*;
@@ -96,14 +97,12 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
         MyClass fatherClass=myGoal.classMap.get(n.f3.getName());
         //check if the father class is exist.
         if(fatherClass==null){
-            MyOutput.error("Father class "+n.f3.getName()+" is not exist.");
-            return _ret;
+            throw new MyException("Father class "+n.f3.getName()+" is not exist.");
         }
         thisClass.upper=fatherClass;
         while(fatherClass!=null){
             if(fatherClass.equals(thisClass)){
-                MyOutput.error("Circulated Extension: "+n.f1.getName());
-                return _ret;
+                throw new MyException("Circulated Extension: "+n.f1.getName());
             }
             fatherClass=(MyClass)fatherClass.upper;
         }
@@ -132,23 +131,20 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
         //check if the type is declared
 
         if(varType==null){
-            MyOutput.error("Type identifier \""+n.f0.toIdentifier().getName()+"\" is not declared.");
-            return _ret;
+            throw new MyException("Type identifier \""+n.f0.toIdentifier().getName()+"\" is not declared.");
         }
         MyVar var=new MyVar(n.f1.getName(),MySymbol.VAR,null,n.f0.getMyType());
         if(argu instanceof MyClass){    //the variable is defined in class
             MyClass myClass=(MyClass)argu;
             if(myClass.varMap.get(n.f1.getName())!=null){ //already defined
-                MyOutput.error("variable \""+n.f1.getName()+"\" is already declared.");
-                return _ret;
+                throw new MyException(n.f1.getPos()+"variable \""+n.f1.getName()+"\" is already declared.");
             }
             myClass.varMap.put(n.f1.getName(),var);
         }
         else if(argu instanceof MyFunc){    //the variable is defined in a function
             MyFunc func=(MyFunc)argu;
             if(func.varMap.get(n.f1.getName())!=null){
-                MyOutput.error("variable \""+n.f1.getName()+"\" is already declared.");
-                return _ret;
+                throw new MyException(n.f1.getPos()+"variable \""+n.f1.getName()+"\" is already declared.");
             }
             func.varMap.put(n.f1.getName(),var);
         }
@@ -180,14 +176,12 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
         MySymbol returnType=n.f1.getMyType();
         //check if the type is declared
         if(returnType==null){
-            MyOutput.error("Type identifier \""+n.f1.toIdentifier().getName()+"\" is not declared.");
-            return _ret;
+            throw new MyException(n.f1.toIdentifier().getPos()+"Type identifier \""+n.f1.toIdentifier().getName()+"\" is not declared.");
         }
         MyClass myClass=(MyClass)argu;
         //check if the function name is declared
         if(myClass.funcMap.get(n.f2.getName())!=null){
-            MyOutput.error("Function \""+n.f2.getName()+"\"is already declared.");
-            return _ret;
+            throw new MyException(n.f2.getPos()+"Function \""+n.f2.getName()+"\"is already declared.");
         }
         MyFunc func=new MyFunc(n.f2.getName(),MySymbol.FUNCTION,myClass,returnType);
         argu=func;
@@ -217,13 +211,12 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
         MySymbol varType=n.f0.getMyType();
         //check if the type is declared
         if(varType==null){
-            MyOutput.error("Type identifier \""+n.f0.toIdentifier().getName()+"\" is not declared.");
-            return _ret;
+            throw new MyException("Type identifier \""+n.f0.toIdentifier().getName()+"\" is not declared.");
         }
         //check if the argument is declared
         MyFunc func=(MyFunc)argu;
         if(func.varMap.get(n.f1.getName())!=null){
-            MyOutput.error("Argument \""+n.f1.getName()+"\" is already declared.");
+            throw new MyException("Argument \""+n.f1.getName()+"\" is already declared.");
         }
         MyVar var=new MyVar(n.f1.getName(),MySymbol.VAR,func,varType);
         func.varMap.put(n.f1.getName(),var);

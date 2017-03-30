@@ -32,6 +32,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f15 -> ( Statement() )*
      * f16 -> "}"
      * f17 -> "}"
+     * @param argu MyGoal
+     * @return null
      */
     public MySymbol visit(MainClass n, MySymbol argu) {
         MySymbol _ret=null;
@@ -66,6 +68,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f3 -> ( VarDeclaration() )*
      * f4 -> ( MethodDeclaration() )*
      * f5 -> "}"
+     * @return null
      */
     public MySymbol visit(ClassDeclaration n, MySymbol argu) {
         MySymbol _ret=null;
@@ -88,6 +91,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f5 -> ( VarDeclaration() )*
      * f6 -> ( MethodDeclaration() )*
      * f7 -> "}"
+     * @param argu MyClass
+     * @return null
      */
     public MySymbol visit(ClassExtendsDeclaration n, MySymbol argu) {
         MySymbol _ret=null;
@@ -107,6 +112,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         return _ret;
     }
 
+
+
     /**
      * f0 -> "public"
      * f1 -> Type()
@@ -121,6 +128,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f10 -> Expression()
      * f11 -> ";"
      * f12 -> "}"
+     * @param argu MyClass
+     * @return null
      */
     public MySymbol visit(MethodDeclaration n, MySymbol argu) {
         MySymbol _ret=null;
@@ -140,6 +149,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         n.f9.accept(this, argu);
         MySymbol retVal=n.f10.accept(this, argu);
         MySymbol retValType=((MyVar)retVal).varType;
+        //check if the return value type is compatible with the defined type
         while(!retValType.equals(returnType)){
             if(retValType.upper==null)
                 throw new MyException(n.f2.getPos()+"return type is not equal with the defination, expected "
@@ -165,6 +175,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      *       | ArrayLength()
      *       | MessageSend()
      *       | PrimaryExpression()
+     *  @param argu MyFunc
+     *  @return MyVar
      */
     public MySymbol visit(Expression n, MySymbol argu) {
         MySymbol _ret=null;
@@ -177,6 +189,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f0 -> PrimaryExpression()
      * f1 -> "&&"
      * f2 -> PrimaryExpression()
+     * @param argu MyFunc
+     * @return MyVar
      */
     public MySymbol visit(AndExpression n, MySymbol argu) {
         MySymbol _ret=null;
@@ -221,6 +235,12 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
 
     /**
      * f0 -> <IDENTIFIER>
+     *     check whether the method or variable is declared
+     *     there could be 3 kinds of identifier:
+     *     1) Variable
+     *     2) Method
+     *     3) Class
+     *     We should know which kind of identifier we are expecting.
      */
     public MySymbol visit(Identifier n, MySymbol argu) {
         MySymbol _ret=null;
@@ -244,7 +264,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
             MyVar var=myFunc.varMap.get(name);
             if(var!=null)
                 return var;
-            //check if it's a variable declared in the class
+            //if not, check if it's a variable declared in the class
             argu=argu.upper;
         }
         if(argu instanceof MyClass){
@@ -284,6 +304,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f2 -> "["
      * f3 -> Expression()
      * f4 -> "]"
+     * @param argu MyFunc
+     * @return MyArray
      */
     public MySymbol visit(ArrayAllocationExpression n, MySymbol argu) {
         MySymbol _ret=null;
@@ -303,6 +325,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f1 -> Identifier()
      * f2 -> "("
      * f3 -> ")"
+     * @param argu MyFunc
+     * @return MyVar, an instance of the class.
      */
     public MySymbol visit(AllocationExpression n, MySymbol argu) {
         MySymbol _ret=null;
@@ -328,7 +352,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         _ret=n.f1.accept(this, argu);
         if(!MyVar.MyBoolean.isTypeEqual(_ret)){
             //MyOutput.error("expected a boolean expression.");
-            return null;
+            throw new MyException("line "+n.f0.beginLine+", expected a boolean expression before '!'.");
         }
         return _ret;
     }
@@ -357,7 +381,8 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         MySymbol var2=n.f2.accept(this, argu);
         if(MyVar.MyInt.isTypeEqual(var1)&&MyVar.MyInt.isTypeEqual(var2))
             return MyVar.MyBoolean;
-        return _ret;
+        throw new MyException("at line "+n.f1.beginLine+", variable not compatible in '<' expression, expected integer, get "
+                +((MyVar)var1).varType.name+" and "+((MyVar)var2).varType.name);
     }
 
     /**
@@ -372,7 +397,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         MySymbol var2=n.f2.accept(this, argu);
         if(MyVar.MyInt.isTypeEqual(var1)&&MyVar.MyInt.isTypeEqual(var2))
             return MyVar.MyInt;
-        throw new MyException("variable not compatible in plus expression, expected integer, get "
+        throw new MyException("at line "+n.f1.beginLine+", variable not compatible in plus expression, expected integer, get "
                 +((MyVar)var1).varType.name+" and "+((MyVar)var2).varType.name);
     }
 
@@ -388,7 +413,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         MySymbol var2=n.f2.accept(this, argu);
         if(MyVar.MyInt.isTypeEqual(var1)&&MyVar.MyInt.isTypeEqual(var2))
             return MyVar.MyInt;
-        throw new MyException("variable not compatible in minus expression, expected integer, get "
+        throw new MyException("at line "+n.f1.beginLine+", variable not compatible in minus expression, expected integer, get "
                 +((MyVar)var1).varType.name+" and "+((MyVar)var2).varType.name);
     }
 
@@ -404,7 +429,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         MySymbol var2=n.f2.accept(this, argu);
         if(MyVar.MyInt.isTypeEqual(var1)&&MyVar.MyInt.isTypeEqual(var2))
             return MyVar.MyInt;
-        throw new MyException("variable not compatible in times expression, expected integer, get "
+        throw new MyException("at line "+n.f1.beginLine+", variable not compatible in times expression, expected integer, get "
                 +((MyVar)var1).varType.name+" and "+((MyVar)var2).varType.name);
     }
 
@@ -671,12 +696,17 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      * f2 -> Expression()
      * f3 -> ")"
      * f4 -> ";"
+     *
      */
     public MySymbol visit(PrintStatement n, MySymbol argu) {
         MySymbol _ret=null;
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
+        MySymbol exp=n.f2.accept(this, argu);
+        if(!MyVar.MyInt.isTypeEqual(exp)){
+            throw new MyException("at line "+n.f0.beginLine+", expected an integer value on printing" +
+                    "expression.");
+        }
         n.f3.accept(this, argu);
         n.f4.accept(this, argu);
         return _ret;
