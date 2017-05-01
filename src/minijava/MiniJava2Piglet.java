@@ -17,7 +17,6 @@ public class MiniJava2Piglet {
         try {
             //Node root = new MiniJavaParser(new FileInputStream("D:\\5teacher lab\\mylab\\TypeCheck\\src\\Factorial.java")).Goal();
             Node root = new MiniJavaParser(new FileInputStream("testcases/extend_test.java")).Goal();
-            //System.out.println("Program parsed successfully");
 
             root.accept(new GJClassVisitor<Object>(),myGoal);
             root.accept(new GJBuildSymbolTable2(),myGoal);
@@ -71,7 +70,7 @@ public class MiniJava2Piglet {
             //root.accept(new FunctionVisitor());
         }
         catch (Exception e) {
-            System.out.println(e.toString());
+            e.printStackTrace();
         }
     }
 }

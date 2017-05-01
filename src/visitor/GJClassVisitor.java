@@ -40,7 +40,6 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  MyGoal myGoal=(MyGoal)argu;
 		  myGoal.classMap.put(name, tempClass);
-		  myGoal.classIdMap.put(tempClass.id,tempClass);
 	      n.f0.accept(this, argu);
 	      n.f1.accept(this, argu);
 	      n.f2.accept(this, argu);
@@ -78,7 +77,6 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 		  }
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  myGoal.classMap.put(name, tempClass);
-		  myGoal.classIdMap.put(tempClass.id,tempClass);
 	      n.f0.accept(this, argu);
 	      n.f1.accept(this, argu);
 	      n.f2.accept(this, argu);
@@ -106,7 +104,6 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 		  }
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  myGoal.classMap.put(name, tempClass);
-		  myGoal.classIdMap.put(tempClass.id,tempClass);
 	      n.f0.accept(this, argu);
 	      n.f1.accept(this, argu);
 	      n.f2.accept(this, argu);
