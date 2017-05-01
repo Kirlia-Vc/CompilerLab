@@ -9,6 +9,8 @@ public class MyFunc extends MySymbol{
 	public Map<String, MyVar> varMap;
 	public MySymbol returnType;             //return type
 	public ArrayList<MySymbol> argList;     //argument list of this function.
+	public int tempNo=20;
+	public int bias;
 	public MyFunc(String name, int type, MySymbol upper, MySymbol returnType) {
 		super(name, type, upper);
 		varMap=new HashMap<>();
@@ -20,6 +22,7 @@ public class MyFunc extends MySymbol{
 	    super(myFunc.name,myFunc.type,myFunc.upper);
 	    varMap=myFunc.varMap;
 	    argList=myFunc.argList;
+	    returnType=myFunc.returnType;
     }
 	public boolean isEqual(MyFunc func){
 	    if(!func.returnType.equals(returnType))

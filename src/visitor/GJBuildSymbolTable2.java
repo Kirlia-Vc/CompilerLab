@@ -1,17 +1,18 @@
 package visitor;
 
+import minijava.MiniJava2Piglet;
 import minijava.MyException;
 import minijava.MyOutput;
-import minijava.TypeCheck;
 import mytypes.*;
 import syntaxtree.*;
+
 /*
 	 * GJBuildSymbolTable:建立符号表的第二步
 	 * 检查Extend父类不存在、循环继承的错误
 	 * 检查变量名重复定义的错误
 	 * 检查变量类型未定义的错误
 	 */
-public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
+public class GJBuildSymbolTable2 extends GJDepthFirst<MySymbol, MySymbol>{
 
 
 	/**
@@ -105,6 +106,7 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
             if(fatherClass.equals(thisClass)){
                 throw new MyException("Circulated Extension: "+n.f1.getName());
             }
+
             fatherClass=(MyClass)fatherClass.upper;
         }
 
@@ -128,25 +130,30 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
      */
     public MySymbol visit(VarDeclaration n, MySymbol argu) {
         MySymbol _ret=null;
-        MySymbol varType=n.f0.getMyType(TypeCheck.myGoal) ;
+        MySymbol varType=n.f0.getMyType(MiniJava2Piglet.myGoal);
         //check if the type is declared
 
         if(varType==null){
             throw new MyException("Type identifier \""+n.f0.toIdentifier().getName()+"\" is not declared.");
         }
-        MyVar var=new MyVar(n.f1.getName(),MySymbol.VAR,null,n.f0.getMyType(TypeCheck.myGoal) );
+        MyVar var=new MyVar(n.f1.getName(),MySymbol.VAR,null,n.f0.getMyType(MiniJava2Piglet.myGoal));
         if(argu instanceof MyClass){    //the variable is defined in class
             MyClass myClass=(MyClass)argu;
             if(myClass.varMap.get(n.f1.getName())!=null){ //already defined
                 throw new MyException(n.f1.getPos()+"variable \""+n.f1.getName()+"\" is already declared.");
             }
-            myClass.varMap.put(n.f1.getName(),var);
+            var.bias=myClass.varBias;   //assign a slot in class VTable
+            //var.name=var.name;
+            myClass.varBias++;
+            myClass.varMap.put(var.name,var);
         }
         else if(argu instanceof MyFunc){    //the variable is defined in a function
             MyFunc func=(MyFunc)argu;
             if(func.varMap.get(n.f1.getName())!=null){
                 throw new MyException(n.f1.getPos()+"variable \""+n.f1.getName()+"\" is already declared.");
             }
+            var.tempNo=func.tempNo;     //set the temp id.
+            func.tempNo++;
             func.varMap.put(n.f1.getName(),var);
         }
         else{
@@ -174,7 +181,7 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
      */
     public MySymbol visit(MethodDeclaration n, MySymbol argu) {
         MySymbol _ret=null;
-        MySymbol returnType=n.f1.getMyType(TypeCheck.myGoal) ;
+        MySymbol returnType=n.f1.getMyType(MiniJava2Piglet.myGoal);
         //check if the type is declared
         if(returnType==null){
             throw new MyException(n.f1.toIdentifier().getPos()+"Type identifier \""+n.f1.toIdentifier().getName()+"\" is not declared.");
@@ -184,9 +191,11 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
         if(myClass.funcMap.get(n.f2.getName())!=null){
             throw new MyException(n.f2.getPos()+"Function \""+n.f2.getName()+"\"is already declared.");
         }
-        MyFunc func=new MyFunc(n.f2.getName(),MySymbol.FUNCTION,myClass,returnType);
+        MyFunc func=new MyFunc(myClass.name+"_"+n.f2.getName(),MySymbol.FUNCTION,myClass,returnType);
         argu=func;
-        myClass.funcMap.put(myClass.name+"_"+n.f2.getName(),func);
+        func.bias=myClass.funcBias;     //assign a slot in class DTable
+        myClass.funcBias++;
+        myClass.funcMap.put(func.name,func);
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         n.f2.accept(this, argu);
@@ -209,7 +218,7 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
      */
     public MySymbol visit(FormalParameter n, MySymbol argu) {
         MySymbol _ret=null;
-        MySymbol varType=n.f0.getMyType(TypeCheck.myGoal) ;
+        MySymbol varType=n.f0.getMyType(MiniJava2Piglet.myGoal);
         //check if the type is declared
         if(varType==null){
             throw new MyException("Type identifier \""+n.f0.toIdentifier().getName()+"\" is not declared.");
@@ -220,10 +229,14 @@ public class GJBuildSymbolTable extends GJDepthFirst<MySymbol, MySymbol>{
             throw new MyException("Argument \""+n.f1.getName()+"\" is already declared.");
         }
         MyVar var=new MyVar(n.f1.getName(),MySymbol.VAR,func,varType);
+        var.tempNo=func.argList.size()+1;
+        if(var.tempNo>=20)
+            func.tempNo++;
         func.varMap.put(n.f1.getName(),var);
         func.argList.add(varType);
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         return _ret;
     }
+
 }

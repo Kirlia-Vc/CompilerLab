@@ -8,11 +8,10 @@ import syntaxtree.*;
 
 /**
  * Created by Vc on 2017/3/21.
+ * GJTypeCheckVisitor: 类型检查的主要visitor
  */
 public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
-    /*
-    GJTypeCheckVisitor:类型检查的主要visitor
-     */
+
     /**
      * f0 -> "class"
      * f1 -> Identifier()
@@ -133,7 +132,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
      */
     public MySymbol visit(MethodDeclaration n, MySymbol argu) {
         MySymbol _ret=null;
-        MySymbol returnType=n.f1.getMyType();
+        MySymbol returnType=n.f1.getMyType(TypeCheck.myGoal);
         MyClass myClass=(MyClass)argu;
         MyFunc func=myClass.funcMap.get(n.f2.getName());
         argu=func;
@@ -314,7 +313,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         n.f2.accept(this, argu);
         MySymbol exp=n.f3.accept(this, argu);
         if(!MyVar.MyInt.isTypeEqual(exp)){
-            throw new MyException("line:"+n.f0.beginLine+": Expression is not an integer.");
+            throw new MyException("at line:"+n.f0.beginLine+": Expression is not an integer.");
         }
         n.f4.accept(this, argu);
         return MyVar.MyArray;
@@ -476,11 +475,11 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         MySymbol _ret=null;
         MySymbol object=n.f0.accept(this, argu);
         if(!(object instanceof MyVar)){
-            throw new MyException("object is not a class instance.");
+            throw new MyException(n.f2.getPos()+"object is not a class instance.");
         }
         MySymbol objType=((MyVar) object).varType;
         if(!(objType instanceof MyClass)){
-            throw new MyException("object is not a class instance.");
+            throw new MyException(n.f2.getPos()+"object is not a class instance.");
         }
         MyClass objClass=(MyClass)objType;
         objClass.expectingMethod=true;
@@ -604,9 +603,10 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         n.f1.accept(this, argu);
         MySymbol exp=n.f2.accept(this, argu);
         if(!(exp instanceof MyVar)||!(var instanceof MyVar)){
-            //MyOutput.error("assignment result is not a variable");
+            //check whether the expression between the '=' are both valid variables
             throw new MyException(n.f0.getPos()+"assignment result is not a variable");
         }
+        //type matching
         while(!((MyVar)var).isTypeEqual(exp)){
             if(exp.upper!=null)
                 exp=exp.upper;
@@ -663,7 +663,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         n.f1.accept(this, argu);
         MySymbol condition=n.f2.accept(this, argu);
         if(!(condition instanceof MyVar)||!(((MyVar) condition).isTypeEqual(MyVar.MyBoolean)))
-            throw new MyException("if condition is not boolean type");
+            throw new MyException("at line "+n.f0.beginLine+", if condition is not boolean type");
         n.f3.accept(this, argu);
         n.f4.accept(this, argu);
         n.f5.accept(this, argu);
@@ -684,7 +684,7 @@ public class GJTypeCheckVisitor extends GJDepthFirst<MySymbol, MySymbol> {
         n.f1.accept(this, argu);
         MySymbol condition=n.f2.accept(this, argu);
         if(!(condition instanceof MyVar)||!(((MyVar) condition).isTypeEqual(MyVar.MyBoolean)))
-            throw new MyException("while condition is not boolean type");
+            throw new MyException("at line "+n.f0.beginLine+", while condition is not boolean type");
         n.f3.accept(this, argu);
         n.f4.accept(this, argu);
         return _ret;

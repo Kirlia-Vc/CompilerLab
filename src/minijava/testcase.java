@@ -1,13 +1,8 @@
-class Main{
-    public static void main(String[] args){
-        C c;
-        int a;
-        c=new C();
-        a=c.init();
-        a=c.some();
-        System.out.println(a);
-    }
-}
+package minijava;
+
+/**
+ * Created by Vc on 2017/4/14.
+ */
 class C{
     A a;
     public int some(){
@@ -36,5 +31,16 @@ class B extends A{
     public int setI(){
         i=6;
         return i;
+    }
+}
+public class testcase {
+
+    public static void main(String[] args){
+        C c;
+        int a;
+        c=new C();
+        a=c.init();
+        a=c.some();
+        System.out.println(a);
     }
 }

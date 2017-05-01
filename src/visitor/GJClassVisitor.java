@@ -7,12 +7,13 @@ import mytypes.MySymbol;
 import syntaxtree.ClassDeclaration;
 import syntaxtree.ClassExtendsDeclaration;
 import syntaxtree.MainClass;
-
+/**
+ * Class visitor:
+ * 遍历所有的类，加入符号表，第一步不考虑继承关系
+ * 检查类的重复定义
+ */
 public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
-	/* Class visitor:
-		* 遍历所有的类，加入符号表，第一步不考虑继承关系
-		* 检查类的重复定义
-		*/
+
 	/**
 	    * f0 -> "class"
 	    * f1 -> Identifier()
@@ -39,6 +40,7 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  MyGoal myGoal=(MyGoal)argu;
 		  myGoal.classMap.put(name, tempClass);
+		  myGoal.classIdMap.put(tempClass.id,tempClass);
 	      n.f0.accept(this, argu);
 	      n.f1.accept(this, argu);
 	      n.f2.accept(this, argu);
@@ -76,6 +78,7 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 		  }
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  myGoal.classMap.put(name, tempClass);
+		  myGoal.classIdMap.put(tempClass.id,tempClass);
 	      n.f0.accept(this, argu);
 	      n.f1.accept(this, argu);
 	      n.f2.accept(this, argu);
@@ -103,6 +106,7 @@ public class GJClassVisitor<R> extends GJDepthFirst<R,MySymbol>{
 		  }
 		  MyClass tempClass=new MyClass(name,MySymbol.CLASS);
 		  myGoal.classMap.put(name, tempClass);
+		  myGoal.classIdMap.put(tempClass.id,tempClass);
 	      n.f0.accept(this, argu);
 	      n.f1.accept(this, argu);
 	      n.f2.accept(this, argu);

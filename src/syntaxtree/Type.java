@@ -4,8 +4,8 @@
 
 package syntaxtree;
 
-import minijava.TypeCheck;
 import mytypes.MyBasicType;
+import mytypes.MyGoal;
 import mytypes.MySymbol;
 
 /**
@@ -40,7 +40,7 @@ public class Type implements Node {
    public Identifier toIdentifier(){
 	   return (Identifier)f0.choice;
    }
-   public MySymbol getMyType(){
+   public MySymbol getMyType(MyGoal goal){
 	   switch (f0.which){
 		   case 2:
 			   return MyBasicType.MyIntType;
@@ -49,7 +49,7 @@ public class Type implements Node {
 		   case 0:
 			   return MyBasicType.MyArrayType;
 	   }  
-	   return TypeCheck.myGoal.classMap.get(toIdentifier().getName());
+	   return goal.classMap.get(toIdentifier().getName());
    }
 }
 
