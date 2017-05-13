@@ -9,6 +9,7 @@ public class MySymbol {
 	public int type;
 	public MySymbol upper;
 	public boolean expectingMethod;
+	public int stempNo;
 	public MySymbol(String name,int type){
 		this.name=name;
 		this.type=type;
@@ -26,4 +27,7 @@ public class MySymbol {
 		this.upper=null;
 		expectingMethod=false;
 	}
+	public MySymbol(int stempNo){
+	    this.stempNo=stempNo;
+    }
 }

@@ -16,9 +16,10 @@ public class MyVar extends MySymbol{
 		super(name, type, upper);
 		// TODO Auto-generated constructor stub
 	}
-	public MyVar(MyVar v){
+	public MyVar(MyVar v, int stempNo){
 	    super(v.name,v.type,v.upper);
         this.varType=v.varType;
+        this.stempNo=stempNo;
     }
 	public boolean isTypeEqual(MySymbol m){
 	    if(!(m instanceof MyVar)){
@@ -27,6 +28,5 @@ public class MyVar extends MySymbol{
         MyVar var=(MyVar)m;
         return this.varType.equals(var.varType);
     }
-	
 	
 }

@@ -23,6 +23,7 @@ public class MyFunc extends MySymbol{
 	    varMap=myFunc.varMap;
 	    argList=myFunc.argList;
 	    returnType=myFunc.returnType;
+	    tempNo=myFunc.tempNo;
     }
 	public boolean isEqual(MyFunc func){
 	    if(!func.returnType.equals(returnType))

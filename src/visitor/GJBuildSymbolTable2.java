@@ -191,7 +191,7 @@ public class GJBuildSymbolTable2 extends GJDepthFirst<MySymbol, MySymbol>{
         if(myClass.funcMap.get(n.f2.getName())!=null){
             throw new MyException(n.f2.getPos()+"Function \""+n.f2.getName()+"\"is already declared.");
         }
-        MyFunc func=new MyFunc(myClass.name+"_"+n.f2.getName(),MySymbol.FUNCTION,myClass,returnType);
+        MyFunc func=new MyFunc(n.f2.getName(),MySymbol.FUNCTION,myClass,returnType);
         argu=func;
         func.bias=myClass.funcBias;     //assign a slot in class DTable
         myClass.funcBias++;

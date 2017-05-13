@@ -5,16 +5,18 @@ import minijava.MyOutput;
 import mytypes.*;
 import syntaxtree.*;
 
+import java.util.ArrayList;
+
 /**
  * Created by Vc on 2017/4/14.
  */
-public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
+public class GJMiniJava2Spiglet extends GJDepthFirst<MySymbol,MySymbol>{
     private static String HLOAD=" HLOAD ";
     private static String TEMP(int i){
         return " TEMP "+SV(i);
     }
     private static String L(int i){
-        return " L"+String.valueOf(i)+" ";
+        return " L"+String.valueOf(i)+" NOOP ";
     }
     private static String HSTORE=" HSTORE ";
     private static String HALLOCATE=" HALLOCATE ";
@@ -163,16 +165,17 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         MySymbol _ret = null;
         global_temp=20;
         if(argu instanceof MyClass) {
-            String funcName = argu.name + "_" + n.f2.getName();
+            String funcName = n.f2.getName();
             MyFunc func = ((MyClass) argu).funcMap.get(funcName);
-            MyOutput.println(func.name+" [ "+String.valueOf(func.argList.size()+1)+" ] ");
+            MyOutput.println(((MyClass)argu).name+"_"+funcName+" [ "+String.valueOf(func.argList.size()+1)+" ] ");
             argu=func;
         }
         MyOutput.println(BEGIN);
         n.f8.accept(this, argu);
         n.f9.accept(this, argu);
-        MyOutput.print(" NOOP "+RETURN);
-        n.f10.accept(this, argu);
+        MySymbol ret=n.f10.accept(this, argu);
+        MyOutput.print(" NOOP "+RETURN+TEMP(ret.stempNo));
+
         n.f11.accept(this, argu);
         n.f12.accept(this, argu);
         MyOutput.println(END);
@@ -191,24 +194,31 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         // 参数还是函数或类的普通变量？
         MyFunc func=(MyFunc)argu;
         int tempt1=func.tempNo++;
+        MySymbol expf2=n.f2.accept(this,argu);
         //函数参数或局部变量
         MyVar var=func.varMap.get(n.f0.getName());
         if(var!=null){
-            MyOutput.println(MOVE);
-            n.f0.accept(this, argu);
+            if(func.argList.size()<20||var.tempNo>func.argList.size()) {    //store in TEMP
+                MyOutput.println(MOVE+TEMP(var.tempNo)+TEMP(expf2.stempNo));    //f0=f2
+
+            }
+            else{
+                MyOutput.println(HSTORE+TEMP(1)+SV(4*var.tempNo-4)+TEMP(var.tempNo));
+            }
         }
 
         else{       //类的变量
             MyClass myClass=(MyClass)func.upper;
+            MyOutput.println(MOVE+TEMP(tempt1)+TEMP(0));
             while(myClass!=null){
-                MyOutput.print(MOVE+TEMP(tempt1)+TEMP(0));
+
                 var=myClass.varMap.get(n.f0.getName());
                 if(var!=null){
-                    MyOutput.print(HSTORE+TEMP(tempt1)+SV(var.bias*4));
+                    MyOutput.print(HSTORE+TEMP(tempt1)+SV(var.bias*4)+TEMP(expf2.stempNo));
                     break;
                 }
                 myClass=(MyClass)myClass.upper;
-                MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(tempt1)+"0 ");
+                MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(tempt1)+SV(0));
             }
 
         }
@@ -218,9 +228,8 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
 
         //n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        MySymbol symbol=n.f2.accept(this, argu);
-        if(symbol instanceof MyClass){
-            var.varType=symbol;
+        if(expf2 instanceof MyVar){
+            var.varType=((MyVar) expf2).varType;
         }
         n.f3.accept(this, argu);
         return _ret;
@@ -237,16 +246,12 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
     public MySymbol visit(ArrayAssignmentStatement n, MySymbol argu) {
         MySymbol _ret=null;
         MyFunc func=(MyFunc)argu;
-        MyOutput.print(HSTORE+PLUS);
-        //get the "Identifier" value
-        n.f0.accept(this,argu);
-        MyOutput.print(TIMES+SV(4));
-        n.f2.accept(this, argu);
-        MyOutput.println("0");
-        n.f3.accept(this, argu);
-        n.f4.accept(this, argu);
-        n.f5.accept(this, argu);
-        n.f6.accept(this, argu);
+        MySymbol idf0=n.f0.accept(this,argu);
+        MySymbol expf2=n.f2.accept(this, argu);
+        MySymbol expf5=n.f5.accept(this, argu);
+        MyOutput.println(MOVE+TEMP(expf2.stempNo)+TIMES+TEMP(expf2.stempNo)+SV(4));
+        MyOutput.println(MOVE+TEMP(idf0.stempNo)+PLUS+TEMP(idf0.stempNo)+TEMP(expf2.stempNo));
+        MyOutput.println(HSTORE+TEMP(idf0.stempNo)+SV(0)+TEMP(expf5.stempNo));
         return _ret;
     }
     /*
@@ -291,11 +296,11 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         MySymbol _ret=null;
         int else_label=global_label++;
         int after_label=global_label++;
-        MyOutput.print(CJUMP);
+
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        n.f3.accept(this, argu);
+        MySymbol cond=n.f2.accept(this, argu);
+        MyOutput.print(CJUMP+TEMP(cond.stempNo));
         MyOutput.println(L(else_label));   //CJUMP ... else
         n.f4.accept(this, argu);
         MyOutput.println(JUMP+L(after_label));
@@ -316,13 +321,11 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         int start_label=global_label++;
         int end_label=global_label++;
         MySymbol _ret=null;
-        MyOutput.print(L(start_label)+CJUMP);
+        MyOutput.print(L(start_label));
 
-        n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        n.f3.accept(this, argu);
-        MyOutput.println(L(end_label));
+        MySymbol exp=n.f2.accept(this, argu);   //calculate condition
+        MyOutput.println(CJUMP+TEMP(exp.stempNo)+L(end_label));
         n.f4.accept(this, argu);
         MyOutput.println("JUMP "+L(start_label));
         MyOutput.println(L(end_label));
@@ -340,8 +343,9 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         MySymbol _ret=null;
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        MyOutput.print("PRINT ");
-        n.f2.accept(this, argu);
+        MySymbol symbol=n.f2.accept(this, argu);
+        MyOutput.print("PRINT "+TEMP(symbol.stempNo));
+
         n.f3.accept(this, argu);
         n.f4.accept(this, argu);
         return _ret;
@@ -353,11 +357,11 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(AndExpression n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print(TIMES);
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+        MySymbol sf0=n.f0.accept(this, argu);
+        MySymbol sf2=n.f2.accept(this, argu);
+        int temp=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(temp)+TIMES+TEMP(sf0.stempNo)+TEMP(sf2.stempNo));
+        return new MySymbol(temp);
     }
     /**
      * f0 -> PrimaryExpression()
@@ -366,11 +370,11 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(CompareExpression n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print("LT ");
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+        MySymbol sf0=n.f0.accept(this, argu);
+        MySymbol sf2=n.f2.accept(this, argu);
+        int temp=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(temp)+LT+TEMP(sf0.stempNo)+TEMP(sf2.stempNo));
+        return new MySymbol(temp);
     }
 
     /**
@@ -380,11 +384,11 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(PlusExpression n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print("PLUS ");
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+        MySymbol sf0=n.f0.accept(this, argu);
+        MySymbol sf2=n.f2.accept(this, argu);
+        int temp=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(temp)+PLUS+TEMP(sf0.stempNo)+TEMP(sf2.stempNo));
+        return new MySymbol(temp);
     }
     /**
      * f0 -> PrimaryExpression()
@@ -393,11 +397,11 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(MinusExpression n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print(MOVE);
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+        MySymbol sf0=n.f0.accept(this, argu);
+        MySymbol sf2=n.f2.accept(this, argu);
+        int temp=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(temp)+MINUS+TEMP(sf0.stempNo)+TEMP(sf2.stempNo));
+        return new MySymbol(temp);
     }
 
     /**
@@ -407,11 +411,12 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(TimesExpression n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print(TIMES);
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+
+        MySymbol sf0=n.f0.accept(this, argu);
+        MySymbol sf2=n.f2.accept(this, argu);
+        int temp=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(temp)+TIMES+TEMP(sf0.stempNo)+TEMP(sf2.stempNo));
+        return new MySymbol(temp);
     }
     /**
      * finish sp
@@ -431,13 +436,13 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         MyFunc func=(MyFunc)argu;
         int tempid1=func.tempNo++;
         int tempid2=func.tempNo++;
-        MyOutput.println(MOVE+TEMP(tempid1));       // temp[tempid1]=f2;
-        n.f2.accept(this,argu);
-        MyOutput.println(MOVE+TEMP(tempid1)+TIMES+SV(4)+TEMP(tempid1));   //tempid1=tempid1*4
+        //MyOutput.println(MOVE+TEMP(tempid1));       // temp[tempid1]=f2;
+        int expf0=n.f0.accept(this, argu).stempNo;
+        int expf2=n.f2.accept(this,argu).stempNo;
+        MyOutput.println(MOVE+TEMP(expf2)+TIMES+SV(4)+TEMP(expf2));   //expf2=expf2*4
         //MyOutput.print(BEGIN+HLOAD+TEMP(tempid1));    //assign a new temp
-        MyOutput.print(MOVE+TEMP(tempid2));
-        n.f0.accept(this, argu);
-        MyOutput.println(MOVE+TEMP(tempid2)+PLUS+TEMP(tempid1)+TEMP(tempid2));      //temp[tempid2]=tempid1+f0
+
+        MyOutput.println(MOVE+TEMP(tempid2)+PLUS+TEMP(expf0)+TEMP(expf2));      //temp[tempid2]=tempid1+f0
         MyOutput.println(HLOAD+TEMP(tempid2)+TEMP(tempid2)+SV(0));        //tempid2=addr[tempid2]
         //n.f2.accept(this, argu);
         //MyOutput.println(RETURN+TEMP(tempid2)+END);
@@ -474,50 +479,95 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(MessageSend n, MySymbol argu) {
         MySymbol _ret=null;
+        ArrayList argList=new ArrayList();
         int tempt1=((MyFunc)argu).tempNo++;
         int tempt2=((MyFunc)argu).tempNo++;
         int tempt3=((MyFunc)argu).tempNo++;
-        MyOutput.println(MOVE+TEMP(tempt1));
+        int tempt4=((MyFunc)argu).tempNo++;
         MyVar symbol=(MyVar)n.f0.accept(this, argu);   //get the type of caller class
-        if(symbol==null){
-            MyOutput.print("DIEDIEDIE");
-        }
+        MyOutput.println(MOVE+TEMP(tempt1)+TEMP(symbol.stempNo));
         MyClass myClass=(MyClass)symbol.varType;
         MyFunc func=null;
         String funcLastname=n.f2.getName();
+
         while(myClass!=null){
-            func=myClass.funcMap.get(myClass.name+"_"+funcLastname);
+            func=myClass.funcMap.get(funcLastname);
 
             if(func!=null){     //get the required function
                 break;
 
             }
             myClass=(MyClass)myClass.upper;     //go to the upper class
-            MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(tempt1)+"0");
+            //MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(tempt1)+"0");
         }
+
+        MyOutput.println(HLOAD+TEMP(tempt4)+TEMP(tempt1)+SV(4));    //tempt4=dtable
+        for(int i=0;i<myClass.funcList.size();i++){
+            String funcName=myClass.funcList.get(i);
+            if(funcName.contains(funcLastname)){
+                MyOutput.println(HLOAD+TEMP(tempt4)+TEMP(tempt4)+SV(4*i));  //tempt4=func addr
+                break;
+            }
+        }
+        MyArgs args=new MyArgs((MyFunc)argu);
         if(func.argList.size()>20){
             MyOutput.println(MOVE+TEMP(tempt2)+HALLOCATE+SV(4*func.argList.size()));    //allocate array
             morethan20=0;
             morethan20temp=tempt2;
-            n.f4.accept(this, argu);
+            n.f4.accept(this, args);
+            MyOutput.println(MOVE+TEMP(tempt3)+CALL+TEMP(tempt4));
+            MyOutput.println("("+TEMP(tempt1)+TEMP(tempt2)+")");
         }
-        else morethan20=-1;
-        MyOutput.println(RETURN+CALL+myClass.name+"_"+funcLastname);
-        MyOutput.print("("+TEMP(tempt1));
-        n.f1.accept(this, argu);
-        //n.f2.accept(this, argu);    //output function bias
-        n.f3.accept(this, argu);
-        if(morethan20==-1)
-            n.f4.accept(this, argu);
-        else
-            MyOutput.print(TEMP(tempt2));
-        MyOutput.println(")"+END);
+        else{
+            morethan20=-1;
+            n.f4.accept(this, args);
+            MyOutput.println(MOVE+TEMP(tempt3)+CALL+TEMP(tempt4)+" (");
+            MyOutput.print(TEMP(tempt1));
+            for(MySymbol i:args.argList){
+                MyOutput.print(TEMP(i.stempNo));
+            }
+            MyOutput.println(")");
+        }
+        ((MyFunc)argu).tempNo=args.tempNo+1;
         if(func.returnType instanceof MyClass){
-            return ((MyClass) func.returnType).myThis;
+            return new MyVar(((MyClass) func.returnType).myThis,tempt3);
         }
-        return null;
+        return new MySymbol(tempt3);
+    }
+    /**
+     * f0 -> Expression()
+     * f1 -> ( ExpressionRest() )*
+     */
+    public MySymbol visit(ExpressionList n, MySymbol argu) {
+        MySymbol _ret=null;
+        int tempf0=n.f0.accept(this, argu).stempNo;
+        if(morethan20>=0){
+            MyOutput.println(HSTORE+TEMP(morethan20temp)+SV(morethan20*4)+TEMP(tempf0));    //save in the array
+            morethan20++;
+        }
+        else{
+            ((MyArgs)argu).addSymbol(new MySymbol(tempf0));
+        }
+        n.f1.accept(this, argu);
+        return _ret;
     }
 
+    /**
+     * f0 -> ","
+     * f1 -> Expression()
+     */
+    public MySymbol visit(ExpressionRest n, MySymbol argu) {
+        MySymbol _ret=null;
+        int tempf1=n.f1.accept(this, argu).stempNo;
+        if(morethan20>=0){
+            MyOutput.println(HSTORE+TEMP(morethan20temp)+SV(morethan20*4)+TEMP(tempf1));
+            morethan20++;
+        }
+        else{
+            ((MyArgs)argu).addSymbol(new MySymbol(tempf1));
+        }
+        return _ret;
+    }
     /**
      * f0 -> "new"
      * f1 -> Identifier()
@@ -529,35 +579,47 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         MySymbol _ret=null;
         String className=n.f1.getName();
         MyClass myClass= MiniJava2Piglet.myGoal.classMap.get(className);    //get the class from symbol table
-        BuildClass(myClass,argu);
-        return myClass.myThis;     //return this class.
+        int stempNo=BuildClass(myClass,argu);
+        return new MyVar(myClass.myThis,stempNo);     //return this class.
     }
-    private static void BuildClass(MyClass myClass, MySymbol argu){
+    private int BuildClass(MyClass myClass, MySymbol argu){
         int bias=0;
         int tempt1=((MyFunc)argu).tempNo++;
-        MyOutput.println(BEGIN+MOVE+TEMP(tempt1));
+        MyOutput.println(MOVE+TEMP(tempt1));
         MyOutput.println(HALLOCATE+SV(4*(myClass.varMap.size()+2)));
         if(myClass.upper!=null){    //build the upper class
-            MyOutput.println(HSTORE+TEMP(tempt1)+SV(0));
-            BuildClass((MyClass)myClass.upper,argu);
+
+            int upper=BuildClass((MyClass)myClass.upper,argu);
+            MyOutput.println(HSTORE+TEMP(tempt1)+SV(0)+TEMP(upper));
         }
-        if(myClass.funcMap.size()>0){   //build Dtable
+        int func_num=0;
+        MyClass tClass=myClass;
+        while(tClass!=null){
+            func_num+=tClass.funcMap.size();
+            tClass=(MyClass)tClass.upper;
+        }
+        //build Dtable
+        ArrayList<String>funcList=myClass.funcList;
+        if(funcList.size()>0){   // output Dtable
             int tempt2=((MyFunc)argu).tempNo++;
-            MyOutput.println(MOVE+TEMP(tempt2)+HALLOCATE+SV(myClass.funcMap.size()*4));
+            MyOutput.println(MOVE+TEMP(tempt2)+HALLOCATE+SV(funcList.size()*4));
             bias=0;
-            for(MyFunc func:myClass.funcMap.values()){
-                MyOutput.println(HSTORE+TEMP(tempt2)+" "+SV(bias)+" "+func.name);
+            for(String funcName:funcList){
+                MyOutput.println(HSTORE+TEMP(tempt2)+" "+SV(bias)+" "+funcName);
                 bias+=4;
             }
             MyOutput.println(HSTORE+TEMP(tempt1)+" 4 TEMP"+SV(tempt2));
         }
+
+        int tempt4=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(tempt4)+SV(0));
         for(int i=0;i<myClass.varMap.size();i++){
-            MyOutput.println(HSTORE+TEMP(tempt1)+SV(i*4+8)+SV(0));
+            MyOutput.println(HSTORE+TEMP(tempt1)+SV(i*4+8)+TEMP(tempt4));
         }
-        MyOutput.println(RETURN+TEMP(tempt1));
-        MyOutput.println(END);
+        return tempt1;
 
     }
+
 
     /**
      * f0 -> IntegerLiteral()
@@ -569,6 +631,7 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      *       | AllocationExpression()
      *       | NotExpression()
      *       | BracketExpression()
+     *  For Spiglet, every primary expression returns a TEMP value.
      */
     public MySymbol visit(PrimaryExpression n, MySymbol argu) {
         MySymbol _ret=null;
@@ -580,18 +643,18 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(IntegerLiteral n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print(" "+n.f0.tokenImage+" ");
-        n.f0.accept(this, argu);
-        return _ret;
+        int tempNo=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(tempNo)+n.f0.tokenImage+" ");
+        return new MySymbol(tempNo);
     }
     /**
      * f0 -> "true"
      */
     public MySymbol visit(TrueLiteral n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print(SV(1));
-        n.f0.accept(this, argu);
-        return _ret;
+        int tempNo=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(tempNo)+SV(1));
+        return new MySymbol(tempNo);
     }
 
     /**
@@ -599,9 +662,9 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(FalseLiteral n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print(SV(0));
-        n.f0.accept(this, argu);
-        return _ret;
+        int tempNo=getTemp(argu);
+        MyOutput.println(MOVE+TEMP(tempNo)+SV(0));
+        return new MySymbol(tempNo);
     }
     /**
      * f0 -> <IDENTIFIER>
@@ -615,26 +678,26 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         MyVar var=func.varMap.get(n.getName());
         int tempt1=func.tempNo++;
         if(var!=null){
-            if(func.argList.size()<20||var.tempNo>func.argList.size())
-                MyOutput.print(TEMP(var.tempNo));
-            else
-                MyOutput.println(BEGIN+HLOAD+TEMP(tempt1)+TEMP(1)+SV(4*var.tempNo-4)+RETURN+TEMP(tempt1)+END);
-            return var;
+            if(func.argList.size()<20||var.tempNo>func.argList.size()){
+                MyOutput.println(MOVE+TEMP(tempt1)+TEMP(var.tempNo));
+                return new MyVar(var,tempt1);
+            }
+            else{
+                MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(1)+SV(4*var.tempNo-4));
+                return new MyVar(var,tempt1);
+            }
         }
         MyClass myClass=(MyClass)argu.upper;
-        MyOutput.print(BEGIN);
 
-        MyOutput.print(MOVE+TEMP(tempt1)+TEMP(0));
+        MyOutput.println(MOVE+TEMP(tempt1)+TEMP(0));
         while(myClass!=null){
             var=myClass.varMap.get(n.getName());
             if(var!=null){
                 MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(tempt1)+var.bias*4);
-                MyOutput.println(RETURN+TEMP(tempt1));
-                MyOutput.println(END);
-                return var;
+                return new MyVar(var,tempt1);
             }
             myClass=(MyClass)myClass.upper;
-            MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(tempt1)+"0 ");
+            MyOutput.println(HLOAD+TEMP(tempt1)+TEMP(tempt1)+SV(0));
         }
         return _ret;
     }
@@ -643,9 +706,7 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(ThisExpression n, MySymbol argu) {
         MySymbol _ret=null;
-        n.f0.accept(this, argu);
-        MyOutput.print(TEMP(0));
-        return ((MyClass)argu.upper).myThis;
+        return new MyVar(((MyClass)argu.upper).myThis,0);
     }
 
     /**
@@ -660,10 +721,11 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         n.f2.accept(this, argu);
-        MyOutput.print(HALLOCATE+TIMES+SV(4));
-        n.f3.accept(this, argu);
         n.f4.accept(this, argu);
-        return _ret;
+        int tempf3=n.f3.accept(this,argu).stempNo;  //tempf3=f3
+        MyOutput.println(MOVE+TEMP(tempf3)+TIMES+TEMP(tempf3)+SV(4));   //tempf3=4*f3
+        MyOutput.println(MOVE+TEMP(tempf3)+HALLOCATE+TEMP(tempf3));         //tempf3=hallocate(tempf3)
+        return new MySymbol(tempf3);
     }
     /**
      * f0 -> "!"
@@ -671,10 +733,10 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
      */
     public MySymbol visit(NotExpression n, MySymbol argu) {
         MySymbol _ret=null;
-        MyOutput.print(MINUS+SV(1));
         n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        return _ret;
+        int temp=n.f1.accept(this, argu).stempNo;   //temp=f1
+        MyOutput.println(MOVE+TEMP(temp)+MINUS+SV(1)+TEMP(temp));   //temp=1-temp;
+        return new MySymbol(temp);
     }
 
     /**
@@ -702,33 +764,5 @@ public class GJMiniJava2Piglet extends GJDepthFirst<MySymbol,MySymbol>{
         return n.f0.accept(this, argu);
     }
 
-    /**
-     * f0 -> Expression()
-     * f1 -> ( ExpressionRest() )*
-     */
-    public MySymbol visit(ExpressionList n, MySymbol argu) {
-        MySymbol _ret=null;
-        if(morethan20>=0){
-            MyOutput.println(HSTORE+TEMP(morethan20temp)+SV(morethan20*4));
-            morethan20++;
-        }
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        return _ret;
-    }
 
-    /**
-     * f0 -> ","
-     * f1 -> Expression()
-     */
-    public MySymbol visit(ExpressionRest n, MySymbol argu) {
-        MySymbol _ret=null;
-        if(morethan20>=0){
-            MyOutput.println(HSTORE+TEMP(morethan20temp)+SV(morethan20*4));
-            morethan20++;
-        }
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        return _ret;
-    }
 }
